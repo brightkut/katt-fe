@@ -1,0 +1,15 @@
+/* Add this at the top of your Login.css file */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Ensure the #root element (or your app's container) takes full height */
+#root {
+  height: 100%;
+  width: 100%;
+}
