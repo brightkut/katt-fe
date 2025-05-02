@@ -3,9 +3,16 @@ import { useAuth0 } from "@auth0/auth0-react";
 import axios from "axios";
 import "./Landing.css";
 
+// Import components
+import Header from "./Header";
+import WalletCard from "./WalletCard";
+import TransactionHistory from "./TransactionHistory";
+import TransactionModal from "./TransactionModal";
+import SuccessPopup from "./SuccessPopup";
+
 function Landing() {
   // Access Token and Auth0
-  const {getAccessTokenSilently, logout, user} = useAuth0();
+  const { getAccessTokenSilently, user } = useAuth0();
   const [accessToken, setAccessToken] = useState(null);
   const url = import.meta.env.VITE_API_URL;
 
@@ -41,7 +48,7 @@ function Landing() {
     amount: ""
   });
 
-  // Add these state variables for transaction history
+  // Transaction history
   const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [pagination, setPagination] = useState({
@@ -51,7 +58,7 @@ function Landing() {
   });
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  // Add these state variables in your component
+  // Filters
   const [filters, setFilters] = useState({
     type: '',
     category: '',
@@ -210,62 +217,61 @@ function Landing() {
       handleCloseWithdrawModal();
       setIsWithdraw(false);
     } catch (error) {
-      console.error("Failed to make deposit:", error);
+      console.error("Failed to make withdraw:", error);
     }
   }
 
- async function handleTransactionHistory() {
-   // If already showing, hide it
-   if (showTransactionHistory) {
-     setShowTransactionHistory(false);
-     return;
-   }
+  async function handleTransactionHistory() {
+    // If already showing, hide it
+    if (showTransactionHistory) {
+      setShowTransactionHistory(false);
+      return;
+    }
 
-   // Otherwise show and fetch data
-   const res = await axios.post(url + '/categories-by-wallet-id', {walletId: wallet.WalletId}, {
-     headers: {
-       Authorization: `Bearer ${accessToken}`,
-     }
-   });
-
-   setCategories(res.data.data);
-   setShowTransactionHistory(true);
-   fetchTransactionHistory(1);
- }
-
-async function fetchTransactionHistory(page = 1) {
-  try {
-    setHistoryLoading(true);
-
-    // Using GET with query parameters instead of POST with request body
-    const response = await axios.get(
-      `${url}/transactions?walletId=${wallet.WalletId}&page=${page}&pageSize=${pagination.pageSize}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        }
+    // Otherwise show and fetch data
+    const res = await axios.post(url + '/categories-by-wallet-id', {walletId: wallet.WalletId}, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
       }
-    );
-
-    setTransactions(response.data.data.data || []);
-    setPagination({
-      ...pagination,
-      page: page,
-      totalPages: response.data.data.totalPages || 0
     });
-  } catch (error) {
-    console.error("Failed to fetch transaction history:", error);
-  } finally {
-    setHistoryLoading(false);
+
+    setCategories(res.data.data);
+    setShowTransactionHistory(true);
+    fetchTransactionHistory(1);
   }
-}
 
- function handlePageChange(newPage) {
-   fetchTransactionHistory(newPage);
- }
+  async function fetchTransactionHistory(page = 1) {
+    try {
+      setHistoryLoading(true);
 
+      // Using GET with query parameters instead of POST with request body
+      const response = await axios.get(
+        `${url}/transactions?walletId=${wallet.WalletId}&page=${page}&pageSize=${pagination.pageSize}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          }
+        }
+      );
 
-// Add this function to handle filter changes
+      setTransactions(response.data.data.data || []);
+      setPagination({
+        ...pagination,
+        page: page,
+        totalPages: response.data.data.totalPages || 0
+      });
+    } catch (error) {
+      console.error("Failed to fetch transaction history:", error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function handlePageChange(newPage) {
+    fetchTransactionHistory(newPage);
+  }
+
+  // Handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
@@ -274,59 +280,19 @@ async function fetchTransactionHistory(page = 1) {
     }));
   }
 
-// Add this function to filter transactions
-  const filterTransactions = () => {
-    // Apply filters to transactions
-    let filteredData = [...transactions];
-
-    if (filters.type) {
-      filteredData = filteredData.filter(t => t.transactionType === filters.type);
-    }
-
-    if (filters.category) {
-      filteredData = filteredData.filter(t => t.categoryName === filters.category);
-    }
-
-    if (filters.fromDate) {
-      const fromDateObj = new Date(filters.fromDate);
-      filteredData = filteredData.filter(t => new Date(t.createdAt) >= fromDateObj);
-    }
-
-    if (filters.toDate) {
-      const toDateObj = new Date(filters.toDate);
-      filteredData = filteredData.filter(t => new Date(t.createdAt) <= toDateObj);
-    }
-
-    return filteredData;
+  // Clear all filters
+  const handleClearFilters = () => {
+    setFilters({
+      type: '',
+      category: '',
+      fromDate: '',
+      toDate: ''
+    });
   }
 
 return (
   <div className="landing-container">
-    <header className="dashboard-header">
-      <div className="header-content">
-        <div className="logo-section">
-          <div className="logo">K</div>
-          <h1>Katt Wallet</h1>
-        </div>
-        <div className="user-section">
-          <div className="user-info">
-            <img
-              src={user?.picture}
-              alt={user?.name}
-              className="user-avatar"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "";
-              }}
-            />
-            <span className="user-name">{user?.name}</span>
-          </div>
-          <button className="logout-button" onClick={() => logout({ returnTo: window.location.origin })}>
-            Logout
-          </button>
-        </div>
-      </div>
-    </header>
+    <Header />
 
     <main className="dashboard-content">
       {loading ? (
@@ -347,311 +313,62 @@ return (
       ) : (
         <div className="wallet-details-container">
           <h2>Your Wallet</h2>
-          <div className="wallet-card">
-            <div className="wallet-header">
-              <h3>Wallet Details</h3>
-              <span className="wallet-balance">${wallet.TotalMoney || 0}</span>
-            </div>
-            <div className="wallet-info">
-              <div className="info-row">
-                <span className="info-label">Wallet ID:</span>
-                <span className="info-value">{wallet.WalletId}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Owner:</span>
-                <span className="info-value">{wallet.email}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Created:</span>
-                <span className="info-value">
-                  {new Date(wallet.CreatedAt).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })} / {new Date(wallet.CreatedAt).getFullYear() + 543}</span>
-              </div>
-            </div>
-            <div className="wallet-actions">
-              <button className="action-button deposit" onClick={handleOpenDepositModal}>Deposit</button>
-              <button className="action-button withdraw" onClick={handleOpenWithdrawModal}>Withdraw</button>
-              <button className="action-button history" onClick={handleTransactionHistory}>
-                {showTransactionHistory ? "Hide History" : "Transaction History"}
-              </button>
-            </div>
-          </div>
+          <WalletCard 
+            wallet={wallet} 
+            onDepositClick={handleOpenDepositModal} 
+            onWithdrawClick={handleOpenWithdrawModal} 
+            onHistoryClick={handleTransactionHistory}
+            showTransactionHistory={showTransactionHistory}
+          />
 
           {/* Transaction History Section - only shown when button is clicked */}
           {showTransactionHistory && (
-              <div className="transaction-history-section">
-                <h2>Transaction History</h2>
-                <div className="transaction-card">
-                  {historyLoading ? (
-                      <div className="loading-container">
-                        <div className="loading-spinner"></div>
-                        <p>Loading transactions...</p>
-                      </div>
-                  ) : transactions.length === 0 ? (
-                      <div className="no-data">
-                        <p>No transactions found. Make a deposit or withdrawal to get started.</p>
-                      </div>
-                  ) : (
-                      <>
-                       <div className="filters-section">
-                         <div className="filter-group">
-                           <label>Transaction Type</label>
-                           <select
-                             name="type"
-                             value={filters.type}
-                             onChange={handleFilterChange}
-                           >
-                             <option value="">All Types</option>
-                             <option value="DEPOSIT">Deposit</option>
-                             <option value="WITHDRAW">Withdraw</option>
-                           </select>
-                         </div>
-
-                         <div className="filter-group">
-                           <label>Category</label>
-                           <select
-                             name="category"
-                             value={filters.category}
-                             onChange={handleFilterChange}
-                           >
-                             <option value="">All Categories</option>
-                             {categories.map(category => (
-                               <option key={category.CategoryId} value={category.CategoryName}>
-                                 {category.CategoryName}
-                               </option>
-                             ))}
-                           </select>
-                         </div>
-
-                         <div className="filter-group">
-                           <label>From Date</label>
-                           <input
-                             type="date"
-                             name="fromDate"
-                             value={filters.fromDate}
-                             onChange={handleFilterChange}
-                           />
-                         </div>
-
-                         <div className="filter-group">
-                           <label>To Date</label>
-                           <input
-                             type="date"
-                             name="toDate"
-                             value={filters.toDate}
-                             onChange={handleFilterChange}
-                           />
-                         </div>
-
-                         <button
-                           className="filter-button"
-                           onClick={() => setFilters({type: '', category: '', fromDate: '', toDate: ''})}
-                         >
-                           Clear Filters
-                         </button>
-                       </div>
-
-                        <table className="transactions-table">
-                          <thead>
-                            <tr>
-                              <th>Date</th>
-                              <th>Type</th>
-                              <th>Category</th>
-                              <th>Name</th>
-                              <th>Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filterTransactions().map(transaction => (
-                                <tr key={transaction.transactionId} className=''>
-                                  <td>{new Date(transaction.createdAt).toLocaleDateString()}</td>
-                                  <td>
-                                  <span className={`transaction-badge ${transaction.transactionType.toLocaleLowerCase()}-txn`}>
-                                    {transaction.transactionType}
-                                  </span>
-                                  </td>
-                                  <td>{transaction.categoryName}</td>
-                                  <td>{transaction.transactionName}</td>
-                                  <td className=''>
-                                    {transaction.transactionType === "DEPOSIT" ? "+" : "-"}${transaction.amount}
-                                  </td>
-                                </tr>
-                            ))}
-                          </tbody>
-                        </table>
-<div className="pagination">
-  <button
-    className="pagination-button"
-    disabled={pagination.page === 1}
-    onClick={() => handlePageChange(pagination.page - 1)}
-  >
-    &laquo; Previous
-  </button>
-  <span className="pagination-info">
-    Page {pagination.page} of {pagination.totalPages || 1}
-  </span>
-  <button
-    className="pagination-button"
-    disabled={pagination.page >= pagination.totalPages}
-    onClick={() => handlePageChange(pagination.page + 1)}
-  >
-    Next &raquo;
-  </button>
-</div>
-                      </>
-                  )}
-                </div>
-              </div>
+            <TransactionHistory 
+              transactions={transactions}
+              categories={categories}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
+              pagination={pagination}
+              onPageChange={handlePageChange}
+              historyLoading={historyLoading}
+            />
           )}
-
-
         </div>
       )}
     </main>
 
-    {showSuccessPopup && (
-      <div className="success-popup">
-        <div className="popup-icon">✓</div>
-        <div className="popup-message">
-          <h3>Success!</h3>
-          <p>Your wallet has been created successfully.</p>
-        </div>
-      </div>
-    )}
-    {showTxnSuccessPopup && (
-      <div className="success-popup">
-        <div className="popup-icon">✓</div>
-        <div className="popup-message">
-          <h3>Success!</h3>
-          <p>Your transaction has been created successfully.</p>
-        </div>
-      </div>
-    )}
+    {/* Success Popups */}
+    <SuccessPopup 
+      show={showSuccessPopup} 
+      message="Your wallet has been created successfully." 
+    />
 
-    {/* Deposit Modal */}
-    {showDepositModal && (
-      <div className="modal-overlay">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h2>Make a Deposit</h2>
-            <button className="modal-close" onClick={handleCloseDepositModal}>×</button>
-          </div>
-          <form className="modal-form" onSubmit={handleDepositSubmit}>
-            <div className="form-group">
-              <label htmlFor="categoryId">Category:</label>
-              <select
-                id="categoryId"
-                name="categoryId"
-                value={depositForm.categoryId}
-                onChange={handleDepositInputChange}
-                required
-              >
-                <option value="">Select a category</option>
-                {categories.map(category => (
-                  <option key={category.CategoryId} value={category.CategoryId}>
-                    {category.CategoryName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="transactionName">Transaction Name:</label>
-              <input
-                type="text"
-                id="transactionName"
-                name="transactionName"
-                value={depositForm.transactionName}
-                onChange={handleDepositInputChange}
-                placeholder="e.g., Salary, Bonus, etc."
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="amount">Amount ($):</label>
-              <input
-                type="number"
-                id="amount"
-                name="amount"
-                min="0.01"
-                step="0.01"
-                value={depositForm.amount}
-                onChange={handleDepositInputChange}
-                placeholder="0.00"
-                required
-              />
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="button-secondary" onClick={handleCloseDepositModal}>Cancel</button>
-              <button type="submit" className="button-primary">Deposit</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )}
+    <SuccessPopup 
+      show={showTxnSuccessPopup} 
+      message="Your transaction has been created successfully." 
+    />
 
-    {/* Withdraw Modal */}
-    {showWithdrawModal && (
-      <div className="modal-overlay">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h2>Make a Withdraw</h2>
-            <button className="modal-close" onClick={handleCloseWithdrawModal}>×</button>
-          </div>
-          <form className="modal-form" onSubmit={handleWithdrawSubmit}>
-            <div className="form-group">
-              <label htmlFor="categoryId">Category:</label>
-              <select
-                id="categoryId"
-                name="categoryId"
-                value={withdrawForm.categoryId}
-                onChange={handleWithdrawInputChange}
-                required
-              >
-                <option value="">Select a category</option>
-                {categories.map(category => (
-                  <option key={category.CategoryId} value={category.CategoryId}>
-                    {category.CategoryName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-group">
-              <label htmlFor="transactionName">Transaction Name:</label>
-              <input
-                type="text"
-                id="transactionName"
-                name="transactionName"
-                value={withdrawForm.transactionName}
-                onChange={handleWithdrawInputChange}
-                placeholder="e.g., Rent, Groceries, etc."
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="amount">Amount ($):</label>
-              <input
-                type="number"
-                id="amount"
-                name="amount"
-                min="0.01"
-                step="0.01"
-                value={withdrawForm.amount}
-                onChange={handleWithdrawInputChange}
-                placeholder="0.00"
-                required
-              />
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="button-secondary" onClick={handleCloseWithdrawModal}>Cancel</button>
-              <button type="submit" className="button-primary">Withdraw</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    )}
+    {/* Transaction Modals */}
+    <TransactionModal 
+      isOpen={showDepositModal}
+      onClose={handleCloseDepositModal}
+      onSubmit={handleDepositSubmit}
+      formData={depositForm}
+      onChange={handleDepositInputChange}
+      categories={categories}
+      type="deposit"
+    />
+
+    <TransactionModal 
+      isOpen={showWithdrawModal}
+      onClose={handleCloseWithdrawModal}
+      onSubmit={handleWithdrawSubmit}
+      formData={withdrawForm}
+      onChange={handleWithdrawInputChange}
+      categories={categories}
+      type="withdraw"
+    />
   </div>
 );
 }
