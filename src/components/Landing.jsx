@@ -51,6 +51,14 @@ function Landing() {
   });
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  // Add these state variables in your component
+  const [filters, setFilters] = useState({
+    type: '',
+    category: '',
+    fromDate: '',
+    toDate: ''
+  });
+
   useEffect(() => {
     async function fetchWallets() {
       try {
@@ -214,6 +222,13 @@ function Landing() {
    }
 
    // Otherwise show and fetch data
+   const res = await axios.post(url + '/categories-by-wallet-id', {walletId: wallet.WalletId}, {
+     headers: {
+       Authorization: `Bearer ${accessToken}`,
+     }
+   });
+
+   setCategories(res.data.data);
    setShowTransactionHistory(true);
    fetchTransactionHistory(1);
  }
@@ -249,6 +264,42 @@ async function fetchTransactionHistory(page = 1) {
    fetchTransactionHistory(newPage);
  }
 
+
+// Add this function to handle filter changes
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  }
+
+// Add this function to filter transactions
+  const filterTransactions = () => {
+    // Apply filters to transactions
+    let filteredData = [...transactions];
+
+    if (filters.type) {
+      filteredData = filteredData.filter(t => t.transactionType === filters.type);
+    }
+
+    if (filters.category) {
+      filteredData = filteredData.filter(t => t.categoryName === filters.category);
+    }
+
+    if (filters.fromDate) {
+      const fromDateObj = new Date(filters.fromDate);
+      filteredData = filteredData.filter(t => new Date(t.createdAt) >= fromDateObj);
+    }
+
+    if (filters.toDate) {
+      const toDateObj = new Date(filters.toDate);
+      filteredData = filteredData.filter(t => new Date(t.createdAt) <= toDateObj);
+    }
+
+    return filteredData;
+  }
+
 return (
   <div className="landing-container">
     <header className="dashboard-header">
@@ -265,7 +316,7 @@ return (
               className="user-avatar"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = "https://via.placeholder.com/40";
+                e.target.src = "";
               }}
             />
             <span className="user-name">{user?.name}</span>
@@ -345,6 +396,64 @@ return (
                       </div>
                   ) : (
                       <>
+                       <div className="filters-section">
+                         <div className="filter-group">
+                           <label>Transaction Type</label>
+                           <select
+                             name="type"
+                             value={filters.type}
+                             onChange={handleFilterChange}
+                           >
+                             <option value="">All Types</option>
+                             <option value="DEPOSIT">Deposit</option>
+                             <option value="WITHDRAW">Withdraw</option>
+                           </select>
+                         </div>
+
+                         <div className="filter-group">
+                           <label>Category</label>
+                           <select
+                             name="category"
+                             value={filters.category}
+                             onChange={handleFilterChange}
+                           >
+                             <option value="">All Categories</option>
+                             {categories.map(category => (
+                               <option key={category.CategoryId} value={category.CategoryName}>
+                                 {category.CategoryName}
+                               </option>
+                             ))}
+                           </select>
+                         </div>
+
+                         <div className="filter-group">
+                           <label>From Date</label>
+                           <input
+                             type="date"
+                             name="fromDate"
+                             value={filters.fromDate}
+                             onChange={handleFilterChange}
+                           />
+                         </div>
+
+                         <div className="filter-group">
+                           <label>To Date</label>
+                           <input
+                             type="date"
+                             name="toDate"
+                             value={filters.toDate}
+                             onChange={handleFilterChange}
+                           />
+                         </div>
+
+                         <button
+                           className="filter-button"
+                           onClick={() => setFilters({type: '', category: '', fromDate: '', toDate: ''})}
+                         >
+                           Clear Filters
+                         </button>
+                       </div>
+
                         <table className="transactions-table">
                           <thead>
                             <tr>
@@ -356,7 +465,7 @@ return (
                             </tr>
                           </thead>
                           <tbody>
-                            {transactions.map(transaction => (
+                            {filterTransactions().map(transaction => (
                                 <tr key={transaction.transactionId} className=''>
                                   <td>{new Date(transaction.createdAt).toLocaleDateString()}</td>
                                   <td>
