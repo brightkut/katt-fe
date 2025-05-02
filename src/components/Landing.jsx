@@ -157,7 +157,6 @@ function Landing() {
 
     try {
       setIsDeposit(true);
-      const token = await getAccessTokenSilently();
       await axios.post(url + '/transactions', {
         walletId: wallet.WalletId,
         categoryId: depositForm.categoryId,
@@ -166,7 +165,7 @@ function Landing() {
         amount: parseFloat(depositForm.amount)
       }, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${accessToken}`,
         }
       });
 
@@ -185,7 +184,6 @@ function Landing() {
 
     try {
       setIsWithdraw(true);
-      const token = await getAccessTokenSilently();
       await axios.post(url + '/transactions', {
         walletId: wallet.WalletId,
         categoryId: withdrawForm.categoryId,
@@ -194,7 +192,7 @@ function Landing() {
         amount: parseFloat(withdrawForm.amount)
       }, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${accessToken}`,
         }
       });
 
@@ -223,14 +221,13 @@ function Landing() {
 async function fetchTransactionHistory(page = 1) {
   try {
     setHistoryLoading(true);
-    const token = await getAccessTokenSilently();
 
     // Using GET with query parameters instead of POST with request body
     const response = await axios.get(
       `${url}/transactions?walletId=${wallet.WalletId}&page=${page}&pageSize=${pagination.pageSize}`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${accessToken}`,
         }
       }
     );
@@ -360,17 +357,17 @@ return (
                           </thead>
                           <tbody>
                             {transactions.map(transaction => (
-                                <tr key={transaction.TransactionId} className={transaction.TransactionType.toLowerCase().substring(0,2)}>
-                                  <td>{new Date(transaction.CreatedAt).toLocaleDateString()}</td>
+                                <tr key={transaction.transactionId} className=''>
+                                  <td>{new Date(transaction.createdAt).toLocaleDateString()}</td>
                                   <td>
-                        <span className={`transaction-badge ${transaction.TransactionType.toLowerCase()}`}>
-                          {transaction.TransactionType}
-                        </span>
+                                  <span className={`transaction-badge ${transaction.transactionType.toLocaleLowerCase()}-txn`}>
+                                    {transaction.transactionType}
+                                  </span>
                                   </td>
-                                  <td>{transaction.CategoryName}</td>
-                                  <td>{transaction.TransactionName}</td>
+                                  <td>{transaction.categoryName}</td>
+                                  <td>{transaction.transactionName}</td>
                                   <td className=''>
-                                    {transaction.TransactionType === "DEPOSIT" ? "+" : "-"}${transaction.Amount}
+                                    {transaction.transactionType === "DEPOSIT" ? "+" : "-"}${transaction.amount}
                                   </td>
                                 </tr>
                             ))}

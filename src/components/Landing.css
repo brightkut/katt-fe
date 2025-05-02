@@ -484,12 +484,12 @@ body, html {
   font-weight: 600;
 }
 
-.transaction-badge.deposit {
+.transaction-badge.deposit-txn {
   background-color: #2e7d32;
   color: white;
 }
 
-.transaction-badge.withdraw {
+.transaction-badge.withdraw-txn {
   background-color: #ff9800;
   color: white;
 }
