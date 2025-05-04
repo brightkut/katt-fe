@@ -1,6 +1,6 @@
 # Katt Project
 
- Katt is a simple and easy to use tool for managing your tasks and projects.
+this is project that help you to manage your financing, and you can see your transaction history
 
 ### Features
 1. You can view all transactions history include filter
