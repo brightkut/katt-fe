@@ -51,9 +51,10 @@ function Landing() {
   // Transaction history
   const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   const [transactions, setTransactions] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
   const [pagination, setPagination] = useState({
     page: 1,
-    pageSize: 5,
+    pageSize: 200,
     totalPages: 0
   });
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -325,6 +326,7 @@ return (
           {showTransactionHistory && (
             <TransactionHistory 
               transactions={transactions}
+              allTransactions={allTransactions}
               categories={categories}
               filters={filters}
               onFilterChange={handleFilterChange}

@@ -3,6 +3,7 @@ import "./TransactionHistory.css";
 
 function TransactionHistory({ 
   transactions, 
+  allTransactions,
   categories, 
   filters, 
   onFilterChange, 
@@ -12,9 +13,9 @@ function TransactionHistory({
   historyLoading 
 }) {
   // Function to filter transactions based on filters
-  const filterTransactions = () => {
+  const filterTransactions = (transactionsToFilter = transactions) => {
     // Apply filters to transactions
-    let filteredData = [...transactions];
+    let filteredData = [...transactionsToFilter];
 
     if (filters.type) {
       filteredData = filteredData.filter(t => t.transactionType === filters.type);
@@ -35,6 +36,31 @@ function TransactionHistory({
     }
 
     return filteredData;
+  };
+
+  // Calculate transaction totals
+  const calculateTotals = () => {
+    // Use allTransactions if available, otherwise use current transactions
+    const dataToUse = allTransactions && allTransactions.length > 0 ? allTransactions : transactions;
+    const filteredData = filterTransactions(dataToUse);
+
+    const totals = {
+      deposit: 0,
+      withdraw: 0,
+      balance: 0
+    };
+
+    filteredData.forEach(transaction => {
+      if (transaction.transactionType === "DEPOSIT") {
+        totals.deposit += parseFloat(transaction.amount);
+        totals.balance += parseFloat(transaction.amount);
+      } else if (transaction.transactionType === "WITHDRAW") {
+        totals.withdraw += parseFloat(transaction.amount);
+        totals.balance -= parseFloat(transaction.amount);
+      }
+    });
+
+    return totals;
   };
 
   return (
@@ -110,6 +136,25 @@ function TransactionHistory({
               </button>
             </div>
 
+            {/* Transaction Summary Section */}
+            <div className="transaction-summary">
+              <h3>Transaction Summary</h3>
+              <div className="summary-cards">
+                <div className="summary-card deposit">
+                  <h4>Total Deposits</h4>
+                  <p className="amount">+${calculateTotals().deposit.toFixed(2)}</p>
+                </div>
+                <div className="summary-card withdraw">
+                  <h4>Total Withdrawals</h4>
+                  <p className="amount">-${calculateTotals().withdraw.toFixed(2)}</p>
+                </div>
+                <div className="summary-card balance">
+                  <h4>Net Balance</h4>
+                  <p className="amount">${calculateTotals().balance.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+
             <table className="transactions-table">
               <thead>
                 <tr>
@@ -138,7 +183,7 @@ function TransactionHistory({
                 ))}
               </tbody>
             </table>
-            
+
             <div className="pagination">
               <button
                 className="pagination-button"
